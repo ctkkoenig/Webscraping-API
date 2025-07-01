@@ -72,7 +72,7 @@ RUN chmod +x start.sh
 # Build TypeScript (if you have a build script)
 RUN npm run build || echo "No build script found"
 
-# Expoe the ports
+# Expose the ports
 EXPOSE 52784
 EXPOSE 60123
 
