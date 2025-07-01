@@ -85,7 +85,7 @@ export default class Proxy {
     this.ports = ports.map((value) => ({
       value,
       browser: puppeteer.launch({
-        args: ["--no-sandbox", `--proxy-server=https=${hostname}:${value}`],
+        args: ["--no-sandbox", `--proxy-server=https://${hostname}:${value}`],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH!,
       }),
       agent: new ProxyAgent(
