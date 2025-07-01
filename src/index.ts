@@ -13,11 +13,8 @@ import net from "net";
 import { URL } from "url";
 import "dotenv/config";
 import crypto from "crypto";
-// Import node-fetch and alias its types so they don’t conflict with Express types.
-import fetch, {
-  Response as FetchResponse,
-  RequestInit as FetchRequestInit,
-} from "node-fetch";
+// Use node-fetch for simple HTTP requests
+import fetch from "node-fetch";
 // Import the Proxy module for fallback fetching
 import Proxy from "./lib/ProxyLegacy";
 
@@ -71,7 +68,7 @@ app.post(
     }
 
     const sig = Buffer.from(signatureHeader as string, "utf8");
-    const hmac = crypto.createHmac("sha256", GITHUB_WEBHOOK_SECRET);
+  const hmac = crypto.createHmac("sha256", GITHUB_WEBHOOK_SECRET || "");
     hmac.update(req.body);
     const digest = Buffer.from("sha256=" + hmac.digest("hex"), "utf8");
     if (!crypto.timingSafeEqual(digest, sig)) {
@@ -127,50 +124,6 @@ function withTimeout<T>(
   });
 }
 
-async function fetchWithRetry(
-  url: string,
-  options: FetchRequestInit,
-  timeout: number,
-  maxRetries: number,
-  retryDelay: number
-): Promise<FetchResponse> {
-  let attempt = 0;
-  let response: FetchResponse | undefined;
-  while (attempt <= maxRetries) {
-    try {
-      console.log(`[ROOFTOP] Fetch attempt ${attempt + 1} for: ${url}`);
-      response = await withTimeout(
-        fetch(url, options),
-        timeout,
-        `Node-fetch for ${url} timed out after ${timeout} ms`
-      );
-      // Ensure response is defined before accessing properties
-      if (response && response.ok) {
-        return response;
-      } else if (response) {
-        console.error(
-          `[ROOFTOP] node-fetch attempt ${
-            attempt + 1
-          } returned non-ok response: ${response.status} - ${
-            response.statusText
-          }`
-        );
-      }
-    } catch (err) {
-      console.error(
-        `[ROOFTOP] node-fetch attempt ${attempt + 1} encountered error:`,
-        err
-      );
-    }
-    attempt++;
-    if (attempt <= maxRetries) {
-      console.log(`[ROOFTOP] Retrying fetch in ${retryDelay}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-    }
-  }
-  throw new Error(`Rooftop fetch error after ${maxRetries + 1} attempts`);
-}
-
 /**
  * Main fetch endpoint (POST /api/fetch)
  */
@@ -186,74 +139,10 @@ app.post("/api/fetch", async (req: Request, res: ExpressResponse) => {
 
     const targetUrl = new URL(url);
     const hostname = targetUrl.hostname.replace(/^www\./, "");
-    const siteHandlerPath = path.resolve(
-      __dirname,
-      `./lib/sites/${hostname}.js`
-    );
-
-    /**
-     * If the URL starts with "https://rooftopdefense.com/wp-json/",
-     * we skip the normal site handler and do a direct node-fetch.
-     * This covers all pages, e.g. page=1, page=2, etc.
-     */
-    if (url.startsWith("https://rooftopdefense.com/wp-json/")) {
-      try {
-        console.log(`[ROOFTOP] Doing direct fetch for: ${url}`);
-
-        // Configure retry settings. You may choose to make these configurable via environment variables.
-        const MAX_RETRIES = 3; // maximum number of additional attempts
-        const RETRY_DELAY_MS = 1000; // wait 1 second between attempts
-
-        // Use our new helper to fetch with retries.
-        const response = await fetchWithRetry(
-          url,
-          {
-            method: "GET",
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-              Accept:
-                "text/html,application/xhtml+xml,application/xml;q=0.9," +
-                "image/avif,image/webp,*/*;q=0.8",
-              "Accept-Language": "en-US,en;q=0.9",
-              "Accept-Encoding": "identity",
-              Referer: "https://www.google.com/",
-            },
-          },
-          FETCH_TIMEOUT_MS,
-          MAX_RETRIES,
-          RETRY_DELAY_MS
-        );
-
-        // Continue processing the successful response.
-        const text = await response.text();
-        console.log(`[ROOFTOP] Direct fetch => content length: ${text.length}`);
-
-        // Attempt to parse the text as JSON
-        try {
-          const parsed = JSON.parse(text);
-          // If it’s valid JSON, return that array/object directly
-          console.log("[ROOFTOP] Successfully parsed JSON array or object");
-          res.json(parsed);
-          return;
-        } catch {
-          // If parse fails, fallback to returning the raw string in "html"
-          console.error("[ROOFTOP] JSON parse failed, returning raw string");
-          res.json({ success: true, html: text });
-          return;
-        }
-      } catch (fetchErr) {
-        console.error("[ROOFTOP] node-fetch error:", fetchErr);
-        res.status(500).json({
-          success: false,
-          message: "Error fetching RooftopDefense URL",
-          error: String(fetchErr),
-        });
-        return;
-      }
-    }
+  const siteHandlerPath = path.resolve(
+    __dirname,
+    `./lib/sites/${hostname}.js`
+  );
 
     // Otherwise, proceed with the normal site handler or fallback
     if (fs.existsSync(siteHandlerPath)) {
@@ -363,19 +252,18 @@ app.listen(PORT, async () => {
   console.log(`API server is running on port ${PORT}`);
 
   const serverIp = await getPublicIP();
-
-  fetch(
-    "https://discord.com/api/webhooks/1330410922157805599/PYtDrCzGlerG3tBY6V35t9Srn7RMoEv4-AsynOUsb-wLcW2iiaoA1JlQKVGOd2r2ufqH",
-    {
+  const webhook = process.env.DISCORD_WEBHOOK_URL;
+  if (webhook) {
+    fetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content: `API server **${serverIp}** is online on port ${PORT}`,
       }),
-    }
-  )
-    .then(() => console.log("Discord webhook sent success!"))
-    .catch((err) => console.error("Discord webhook error:", err));
+    })
+      .then(() => console.log("Discord webhook sent success!"))
+      .catch((err) => console.error("Discord webhook error:", err));
+  }
 });
 
 const AGENT_PORT = parseInt(process.env.AGENT_PORT || "60123", 10);

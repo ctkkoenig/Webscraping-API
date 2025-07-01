@@ -1,5 +1,5 @@
 {
-  "name": "scrapingserver",
+  "name": "webscraping-api-template",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -8,10 +8,10 @@
     "dev": "ts-node src/index.ts",
     "test": "tsc --noEmit"
   },
-  "keywords": [],
+  "keywords": ["webscraping", "api", "express", "typescript"],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "description": "Simple Express server template for web scraping.",
   "dependencies": {
     "async-mutex": "^0.5.0",
     "axios": "^1.7.7",

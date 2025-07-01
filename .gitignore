@@ -14,3 +14,4 @@
 /public/sw.js
 .env
 /dist/
+*.DS_Store
