@@ -1,0 +1,28 @@
+services:
+  scrapingserver:
+    build: .
+    # Force x86_64 image so Puppeteer gets a compatible Chrome binary
+    platform: linux/amd64
+    container_name: scrapingserver_container
+    volumes:
+      # Mount source code so changes are picked up without rebuilding
+      - .:/app/scrapingserver
+      # Keep node_modules inside the container to avoid host/arch conflicts
+      - node_modules:/app/scrapingserver/node_modules
+      # Required so the container can control Docker when running update.sh
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "52784:52784"
+      - "60123:60123"
+    env_file:
+      - .env
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:52784/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  node_modules:

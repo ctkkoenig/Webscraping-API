@@ -1,0 +1,40 @@
+{
+  "name": "scrapingserver",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "test": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "async-mutex": "^0.5.0",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "cloudscraper": "^4.6.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "header-generator": "^2.1.57",
+    "next": "^15.0.2",
+    "node-fetch": "^2.7.0",
+    "playwright": "^1.49.1",
+    "puppeteer": "^22.10.0",
+    "puppeteer-cluster": "^0.24.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "undici": "^6.20.1",
+    "winston": "^3.16.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.8.7",
+    "@types/node-fetch": "^2.6.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
