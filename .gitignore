@@ -1,0 +1,16 @@
+/node_modules/
+/.next/
+
+/.cache/
+/.config/
+/.fontconfig/
+/.local/
+/.npm/
+/.pki/
+
+/.image-cache/
+/.feed-paths/
+
+/public/sw.js
+.env
+/dist/
